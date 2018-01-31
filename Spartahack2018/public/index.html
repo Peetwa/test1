@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>TrackOR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,700" rel="stylesheet">
+    <link rel="stylesheet" href="icons/flaticon.css">
+    <script src="https://unpkg.com/frappe-charts@0.0.8/dist/frappe-charts.min.iife.js"></script>
+    <script src="axios.min.js"></script>
+    <!-- Link to your stylesheet here -->
+    <script src="./vue.js"></script>
+    <script src="./moment.min.js"></script>
+    <link rel="stylesheet" href="aj.min.css">
+    <script>
+    var map = {
+        clamp: "flaticon-clamp-1",
+        spreader: "flaticon-clamp",
+        towel: "flaticon-wipes",
+        scissor: "flaticon-scissors",
+        scalpel: "flaticon-scalpel"
+    }
+    var fitbit = []
+    count = 0
+    axios.get('fitbit.json').then(function(response) {
+        fitbit = response.data
+    })
+    </script>
+</head>
+
+<body class="bg-white">
+    <div class="" id="app">
+        <div class="row cf">
+            <div class="six columns bg-blue white p4 min-vh-100">
+                <h3 class="mb4 tc ttu tracked"><b>{{user.formattedName}}</b></h3>
+                <div class="row cf mb0">
+                    <div class="six columns">
+                        <h5>DOB: <b>{{moment(user.dateOfBirth).format('MM/DD/YYYY')}}</b></h5>
+                        <h5>Allergies: <b v-for="allergy in user.allergies">{{allergy}}</b></h5>
+                    </div>
+                    <div class="six columns">
+                        <h5>Surgeon: <b>Dr. {{user.Surgeon}}</b></h5>
+                        <h5>Procedure: <b>{{user.Procedure}}</b></h5>
+                    </div>
+                </div>
+                <div class="row cf">
+                    <div class="six columns">
+                        <div class="ba br3 bw2 p1 tc bg-white b-blue">
+                            <h4 class="mb1 red">Heart Rate</h4>
+                            <h5 class="m0 red"><b>{{bpm}} </b>bpm</h5>
+                            <div id="bpm"></div>
+                        </div>
+                    </div>
+                    <div class="six columns mv1">
+                        <div class="ba br3 bw2 p1 tc bg-white b-blue">
+                            <h4 class="mb1 green">Oxygen</h4>
+                            <h5 class="m0 green"><b>{{oxygen}} </b>%</h5>
+                            <div id="oxygen"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row cf mt2">
+                    <div class="six columns mv1">
+                        <div class="ba br3 bw2 p1 tc bg-white blue">
+                            <h4 class="mb1">Temperature</h4>
+                            <h5 class="m0"><b>{{temp}} </b>F</h5>
+                            <div id="temp"></div>
+                        </div>
+                    </div>
+                    <div class="six columns mv1">
+                        <div class="ba br3 bw2 p1 tc bg-white blue">
+                            <h4>Blood Pressure</h4>
+                            <h5><b class="tracked" v-if="user.bloodPressure">{{user.bloodPressure[0]}}/{{user.bloodPressure[1]}}</b> mmHg</h5>
+                            <div id="pressure"></div>
+                        </div>
+                        <div class="tc mt3">
+                            <h4 class="b tracked mb1 ttu">Start Time</h4>
+                            <div class="f6">{{moment(user.startTime).format('MMMM Do YYYY, h:mm')}}</div>
+                            <br>
+                            <h4 class="b tracked mb1 ttu">Elapsed</h4>
+                            <div class="f6">{{parseInt(moment.duration(moment().diff(user.startTime)).asHours())}} hours and {{parseInt(moment.duration(moment().diff(user.startTime)).asMinutes())}} minutes</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="six columns p4">
+                <h3 class="b mb4 tc ttu tracked"><span class="red">active</span> Instruments</h3>
+                <p class="f5">
+                </p>
+                <br>
+                <div class="f5">
+                    <div v-for="item in active" :class="'f1 dib red ' + map[item.toLowerCase()]"></div>
+                    <!--<div v-for="item in inactive" :class="'f1 dib white-3 ' + map[item.toLowerCase()]"></div>-->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+</body>
+<script>
+function diff(a1, a2) {
+    a2c = JSON.parse(JSON.stringify(a2))
+    for (var i = a1.length - 1; i >= 0; i--) {
+        a2c = a2c.remove(a1[i])
+    }
+    return a2c;
+}
+
+function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+Array.prototype.remove = function(item) {
+    var index = this.indexOf(item);
+    this.splice(index, 1);
+    return this;
+};
+
+var app = new Vue({
+    el: '#app',
+    mounted: function() {
+        var self = this;
+        axios.get('/user/Peter').then(function(response) {
+            app.user = response.data.user
+            app.temp = self.user.temperature[0]
+            app.oxygen = self.user.oxygenLevel[0]
+            app.bpm = self.user.heartRate[0]
+
+            var temp = new Chart({
+                parent: "#temp", // or a DOM element
+                data: {
+                    labels: ["5", "4", "3", "2", "1", "0"],
+                    datasets: [{
+                        title: "Temperature",
+                        values: [self.temp, self.temp, self.temp, self.temp, self.temp, self.temp]
+                    }]
+                },
+                type: 'line', // or 'line', 'scatter', 'pie', 'percentage'
+                height: 100,
+                colors: ['#2f97de'],
+
+            });
+            var oxygen = new Chart({
+                parent: "#oxygen", // or a DOM element
+                data: {
+                    labels: ["5", "4", "3", "2", "1", "0"],
+                    datasets: [{
+                        title: "Oxygen",
+                        values: [self.oxygen, self.oxygen, self.oxygen, self.oxygen, self.oxygen, self.oxygen]
+                    }]
+                },
+                type: 'line', // or 'line', 'scatter', 'pie', 'percentage'
+                height: 100,
+                colors: ['#1cce6c'],
+            });
+            var bpm = new Chart({
+                parent: "#bpm", // or a DOM element
+                data: {
+                    labels: ["5", "4", "3", "2", "1", "0"],
+                    datasets: [{
+                        title: "Heart Rate",
+                        values: [self.bpm, self.bpm, self.bpm, self.bpm, self.bpm, self.bpm]
+                    }]
+                },
+                type: 'line', // or 'line', 'scatter', 'pie', 'percentage'
+                height: 100,
+                colors: ['#e84c36'],
+            });
+            window.setInterval(function() {
+                self.update()
+                app.oxygen = Math.round(10 * random(app.oxygen - .2, app.oxygen + .2)) / 10;
+                if (app.oxygen > 100) app.oxygen = 100
+                newData = oxygen.data.datasets[0].values;
+                newData.splice(0, 1)
+                newData.push(app.oxygen)
+                oxygen.update_values(
+                    [{ values: newData }],
+                );
+                app.temp = Math.round(10 * random(app.temp - .2, app.temp + .2)) / 10;
+                if (app.temp > 108) app.temp = 108
+                newData = temp.data.datasets[0].values;
+                newData.splice(0, 1)
+                newData.push(app.temp)
+                temp.update_values(
+                    [{ values: newData }],
+                );
+                app.bpm = fitbit[++count].value
+                if (app.bpm > 108) app.bpm = 108
+                newData = bpm.data.datasets[0].values;
+                newData.splice(0, 1)
+                newData.push(app.bpm)
+                bpm.update_values(
+                    [{ values: newData }],
+                );
+            }, 2000);
+        })
+    },
+    data: { active: [],
+        inactive: [],
+        diff: diff,
+        temp: 98.6,
+        oxygen: 98,
+        bpm: 75,
+        start: moment(),
+        moment: moment,
+        user: {},
+        map: map
+    },
+    methods: {
+        update: function() {
+            var self = this
+            axios.get('/user/Peter').then(function(response) {
+                self.user = response.data.user
+                self.active = self.user.inTools
+                self.inactive = self.user.outTools
+            })
+        }
+    },
+    computed: {
+        currentIn: function() {
+            return diff(this.out, this.in)
+        }
+    }
+})
+</script>
+
+</html>

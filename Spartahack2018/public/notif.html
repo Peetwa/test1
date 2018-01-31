@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>MedAural</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,700" rel="stylesheet">
+    <link rel="stylesheet" href="icons/flaticon.css">
+    <script src="https://unpkg.com/frappe-charts@0.0.8/dist/frappe-charts.min.iife.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.js"></script>
+    <script src="push.min.js"></script>
+    <!-- Link to your stylesheet here -->
+    <script src="vue.js"></script>
+    <script src="moment.min.js"></script>
+    <link rel="stylesheet" href="aj.min.css">
+    <script>
+    var map = {
+        clamp: "flaticon-clamp-1",
+        spreader: "flaticon-clamp",
+        towel: "flaticon-wipes",
+        scissors: "flaticon-scissors",
+        scalpel: "flaticon-scalpel"
+    }
+    Push.create("Nurse Alert!", {
+        body: "Room 141 needs a MESSAGE",
+        timeout: 4000,
+        onClick: function() {
+            window.focus();
+            this.close();
+        }
+    });
+    </script>
+</head>
+
+<body class="bg-white">
+    <div class="" id="app">
+        <h1>Announcements</h1>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+    var socket = io();
+    </script>
+</body>
+<script>
+var io = io();
+io.on('connection', function(socket) {
+    console.log('a user connected');
+    socket.on('disconnect', function() {
+        console.log('user disconnected');
+    });
+});
+
+function diff(a1, a2) {
+    a2c = JSON.parse(JSON.stringify(a2))
+    for (var i = a1.length - 1; i >= 0; i--) {
+        a2c = a2c.remove(a1[i])
+    }
+    return a2c;
+}
+
+function random(min, max) {
+    return Math.random() * (max - min) + min;
+}
+Array.prototype.remove = function(item) {
+    var index = this.indexOf(item);
+    this.splice(index, 1);
+    return this;
+};
+
+var app = new Vue({
+    el: '#app',
+    mounted: function() {
+        var temp = new Chart({
+            parent: "#temp", // or a DOM element
+            data: {
+                labels: ["-5", "-4", "-3", "-2", "-1", "0"],
+                datasets: [{
+                    title: "Temperature",
+                    values: [this.temp, this.temp, this.temp, this.temp, this.temp, this.temp]
+                }]
+            },
+            type: 'line', // or 'line', 'scatter', 'pie', 'percentage'
+            height: 100,
+            colors: ['#2f97de'],
+
+        });
+        var oxygen = new Chart({
+            parent: "#oxygen", // or a DOM element
+            data: {
+                labels: ["-5", "-4", "-3", "-2", "-1", "0"],
+                datasets: [{
+                    title: "Oxygen",
+                    values: [this.oxygen, this.oxygen, this.oxygen, this.oxygen, this.oxygen, this.oxygen]
+                }]
+            },
+            type: 'line', // or 'line', 'scatter', 'pie', 'percentage'
+            height: 100,
+            colors: ['#1cce6c'],
+        });
+        var bpm = new Chart({
+            parent: "#bpm", // or a DOM element
+            data: {
+                labels: ["-5", "-4", "-3", "-2", "-1", "0"],
+                datasets: [{
+                    title: "Heart Rate",
+                    values: [this.bpm, this.bpm, this.bpm, this.bpm, this.bpm, this.bpm]
+                }]
+            },
+            type: 'line', // or 'line', 'scatter', 'pie', 'percentage'
+            height: 100,
+            colors: ['#e84c36'],
+        });
+        window.setInterval(function() {
+            app.oxygen = Math.round(10 * random(app.oxygen - .2, app.oxygen + .2)) / 10;
+            if (app.oxygen > 100) app.oxygen = 100
+            newData = oxygen.data.datasets[0].values;
+            newData.splice(0, 1)
+            newData.push(app.oxygen)
+            oxygen.update_values(
+                [{ values: newData }],
+            );
+            app.temp = Math.round(10 * random(app.temp - .2, app.temp + .2)) / 10;
+            if (app.temp > 108) app.temp = 108
+            newData = temp.data.datasets[0].values;
+            newData.splice(0, 1)
+            newData.push(app.temp)
+            temp.update_values(
+                [{ values: newData }],
+            );
+            app.bpm = Math.round(random(app.bpm - 1, app.bpm + 1));
+            if (app.bpm > 108) app.bpm = 108
+            newData = bpm.data.datasets[0].values;
+            newData.splice(0, 1)
+            newData.push(app.bpm)
+            bpm.update_values(
+                [{ values: newData }],
+            );
+        }, 2000);
+    },
+    data: { in: ["Scalpel", "Scalpel", "Clamp", "Clamp", "Towel", "Scalpel", "Scalpel", "Clamp", "Clamp", "Towel", "Spreader"],
+        out: ["Scalpel", "Towel", "Spreader"],
+        diff: diff,
+        temp: 98.6,
+        oxygen: 98,
+        bpm: 75,
+        start: moment(),
+        moment: moment,
+        map: map
+    },
+    computed: {
+        currentIn: function() {
+            return diff(this.out, this.in)
+        }
+    }
+})
+</script>
+
+</html>
